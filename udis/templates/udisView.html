@@ -1,0 +1,213 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script>
+        //Variable global con los datos de TIEES
+        var datos="";
+        var apikey="{{ apikey }}"
+    </script>
+    <script src="{% static "udis/udisscripts.js" %}"></script>
+
+</head>
+
+<body>
+
+<div class="ui two column grid container">
+
+    <div class="centered row">
+        <div class="ui huge label">
+          Udis y Dolar
+        </div>
+    </div>
+    <div class="row">
+        <div class="column">
+            Ingrese periodo de consulta
+            <br>
+            <input type="date" id="dateUdisIni">
+            <input type="date" id="dateUdisFin">
+        </div>
+        <div class="column middle aligned">
+
+            <button onclick="getRequest()">Obtener Informacion</button>
+        </div>
+
+    </div>
+
+  <div class="nine wide column">
+      <div class="container">
+      <table id='result'  class="ui selectable celled table">
+        <thead>
+            <th>Fecha</th>
+            <th>Udi</th>
+            <th>Interbancario a 48 horas Apertura compra</th>
+        <th>Dolar para solventar obligaciones denominadas en moneda extranjera</th>
+        <th>Interbancario a 48 horas Cierre venta</th>
+
+        </thead>
+      </table>
+      </div>
+  </div>
+  <div class="seven wide column ">
+      <div class="ui container">
+      <div id="divUdis">
+
+      </div>
+      <div id="divDol">
+
+      </div>
+
+      </div>
+
+  </div>
+
+    <div class="centered row">
+        <div class="ui huge label">
+          Tasas de Ineterés Interbacarias (TIIE)
+        </div>
+    </div>
+
+
+  <div class="row">
+      <div class="five wide column">
+          <div class="ui container">
+      Selecciona un tipo de plazo
+        <div class="ui fluid selection dropdown">
+          <input type="hidden" name="serie" onchange="getTiees()">
+          <i class="dropdown icon"></i>
+          <div class="default text">Select Friend</div>
+          <div class="menu">
+            <div class="item" data-value="SF43783">
+              <img class="ui mini avatar image" src="">
+                SF43783, 	TIIE a 28 días Tasa de interés en por ciento anual
+            </div>
+            <div class="item" data-value="SF283">
+              <img class="ui mini avatar image" src="">
+                SF283   TIIE a 28 días Tasa de interés promedio mensual, en por ciento anual
+            </div>
+            <div class="item" data-value="SF43878">
+              <img class="ui mini avatar image" src="">
+                SF43878 Tasas de interés interbancarias Por ciento anual TIIE a 91 días
+            </div>
+            <div class="item" data-value="SF111916">
+              <img class="ui mini avatar image" src="">
+                SF111916 	TIIE a 182 días
+            </div>
+              <div class="item" data-value="SF17801">
+              <img class="ui mini avatar image" src="">
+                SF17801 TIIE a 91 días Tasa de interés promedio mensual, en por ciento anual
+            </div>
+              <div class="item" data-value="SF221962">
+              <img class="ui mini avatar image" src="">
+                SF221962 TIIE a 182 días Tasa de interés promedio mensual, en por ciento anual
+            </div>
+
+
+
+
+          </div>
+        </div>
+
+
+        <!--button onclick="getTiees()">Get tiies</button-->
+
+        <div class="ui container">
+        <table id="tablaTiie" class="ui selectable  table" >
+        </table>
+        </div>
+      </div>
+      </div>
+        <div class="ten wide centered column rail">
+
+            <div class="ui sticky container">
+            <div class="ui top  attached label">
+              Historico
+            </div>
+                <div id="divTie" >
+
+                </div>
+
+            </div>
+        </div>
+  </div>
+
+
+</div>
+
+
+
+
+<script>
+
+$('.ui.dropdown')
+  .dropdown();
+</script>
+
+<script>
+    //Obtenemos las Ties apenas se carga el documento
+    $.ajax({
+        url: "https://www.banxico.org.mx/SieAPIRest/service/v1/series/SF43783,SF283,SF43878,SF111916,SF17801,SF221962/datos?token="+apikey,
+        jsonp: "callback",
+        dataType: "jsonp", //Se utiliza JSONP para realizar la consulta cross-site
+        success: function (response) {  //Handler de la respuesta
+            console.log(response.bmx.series);
+            datos = {};
+            //Ordenamos response
+            $.each(response.bmx.series, function (i, v) {
+                datos[v.idSerie] = getArray(response.bmx.series[i].datos);
+
+            });
+        }
+    });
+</script>
+<script>
+
+    function getTiees() {
+    /*
+    Series
+    SF43783, 	TIIE a 28 días Tasa de interés en por ciento anual
+    SF283   TIIE a 28 días Tasa de interés promedio mensual, en por ciento anual
+    SF43878 Tasas de interés interbancarias Por ciento anual TIIE a 91 días
+    SF111916 	TIIE a 182 días
+    SF17801 TIIE a 91 días Tasa de interés promedio mensual, en por ciento anual
+    SF221962 TIIE a 182 días Tasa de interés promedio mensual, en por ciento anual
+     */
+    id_serie=$("input[name=serie]").val();
+    console.log(id_serie);
+
+
+    table=getRowTable(["Fecha","Porcentaje"],"th","thead");
+    for (key in datos[id_serie]){
+        table+=getRowTable([key,datos[id_serie][key]],"td","tr")
+    }
+    //Quitamos valores no numericos
+    filteredValues=Object.values(datos[id_serie]).filter(function(item) {
+     return (!isNaN(item));
+     });
+
+    ydes=Math.max.apply(Math, filteredValues);
+    xdes=getKeyByValue(datos[id_serie], ydes);
+    console.log(xdes,ydes);
+    graficaDestacar("divTie",Object.keys(datos[id_serie]),Object.values(datos[id_serie]),[xdes],[ydes],id_serie);
+
+
+    $("#tablaTiie")
+        .empty()
+        .append(table)
+
+
+}
+
+
+</script>
+
+<br><br><br><br>
+
+</body>
+</html>
